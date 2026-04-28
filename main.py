@@ -1,6 +1,7 @@
 import subprocess
 import re
 import logging
+import json
 
 # Setup logging
 logger = logging.getLogger("Bluetooth")
@@ -56,6 +57,38 @@ class Plugin:
             return False, "", error_msg
         except FileNotFoundError:
             error_msg = "bluetoothctl binary not found"
+            self.logger.error(error_msg)
+            return False, "", error_msg
+        except Exception as e:
+            error_msg = f"Unexpected error: {str(e)}"
+            self.logger.error(error_msg)
+            return False, "", error_msg
+
+    async def _call_pactl(self, args, timeout=10):
+        """
+        Safely call pactl with error handling.
+        Returns tuple: (success: bool, output: str, error: str)
+        """
+        try:
+            result = subprocess.run(
+                ["pactl"] + args,
+                timeout=timeout,
+                text=True,
+                capture_output=True
+            )
+            
+            if result.returncode != 0:
+                error_msg = result.stderr or "Unknown error"
+                self.logger.warning(f"pactl {' '.join(args)} failed: {error_msg}")
+                return False, "", error_msg
+            
+            return True, result.stdout, ""
+        except subprocess.TimeoutExpired:
+            error_msg = f"pactl command timed out after {timeout}s"
+            self.logger.error(error_msg)
+            return False, "", error_msg
+        except FileNotFoundError:
+            error_msg = "pactl binary not found"
             self.logger.error(error_msg)
             return False, "", error_msg
         except Exception as e:
@@ -141,7 +174,7 @@ class Plugin:
             error_msg = f"Error toggling device connection: {str(e)}"
             self.logger.error(error_msg)
             return error_msg
-    
+     
     async def toggle_bluetooth(self, state):
         """Toggle bluetooth power on/off"""
         try:
@@ -158,5 +191,36 @@ class Plugin:
             return output
         except Exception as e:
             error_msg = f"Error toggling bluetooth: {str(e)}"
+            self.logger.error(error_msg)
+            return error_msg
+
+    async def get_audio_profiles(self):
+        """Get available audio profiles for all cards"""
+        try:
+            success, output, error = await self._call_pactl(["list", "cards"])
+            if not success:
+                self.logger.error(f"Failed to get audio profiles: {error}")
+                return f"Error: {error}"
+            return output
+        except Exception as e:
+            error_msg = f"Error retrieving audio profiles: {str(e)}"
+            self.logger.error(error_msg)
+            return error_msg
+
+    async def set_audio_profile(self, card_name, profile_name):
+        """Set audio profile for a specific card"""
+        try:
+            if not card_name or not isinstance(card_name, str):
+                return "Error: Invalid card_name parameter"
+            if not profile_name or not isinstance(profile_name, str):
+                return "Error: Invalid profile_name parameter"
+            
+            success, output, error = await self._call_pactl(["set-card-profile", card_name, profile_name])
+            
+            if not success:
+                return f"Error: Failed to set audio profile: {error}"
+            return output
+        except Exception as e:
+            error_msg = f"Error setting audio profile: {str(e)}"
             self.logger.error(error_msg)
             return error_msg
