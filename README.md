@@ -8,9 +8,22 @@ If you can't see your device make sure you paired it once via the settings menu 
   
 Under the hood it's just using bluetoothctl.  
 
+## Features
+- Quick Bluetooth device connection/disconnection
+- Bluetooth power toggle
+- **Audio Codec Switching** - Change between different audio codecs (aptX, LDAC, SBC, etc.) for connected audio devices directly in Gaming Mode
+
 ## Installation  
 Install it via https://plugins.deckbrew.xyz/  
-  
+
+## Audio Codec Management
+For audio devices (headsets, headphones), you can now switch between available audio codecs without leaving Gaming Mode:
+- Select a connected audio device
+- A codec dropdown will appear below the device
+- Choose your preferred codec/profile (e.g., aptX, LDAC, SBC)
+- The codec will be applied immediately via `pactl`
+
+This feature requires `pactl` to be available on your system (typically included with PulseAudio).
+
 ## Planned features  
-I've been thinking about adding a dedicated view to allow selecting the audio profile (as requested in #1).  
-I would also like to include devices renaming.
+Additional device management features and enhanced codec profiles display.
